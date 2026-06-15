@@ -1,0 +1,331 @@
+name: 🚀 Deploy to GitHub Pages + Selenium E2E Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      run_tests_only:
+        description: 'Run tests against existing deployment (skip deploy)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-${{ github.ref }}"
+  cancel-in-progress: false
+
+env:
+  GITHUB_USERNAME: bonamrakesh
+  REPOSITORY_NAME: Smart-Admission
+  BASE_URL: https://bonamrakesh.github.io/Smart-Admission/
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Build Expo Web App
+  # ─────────────────────────────────────────────
+  build:
+    name: 🔨 Build Expo Web App
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.run_tests_only != 'true'
+    outputs:
+      build_status: ${{ steps.build_result.outputs.status }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: 🔨 Build Expo web app
+        run: npx expo export --platform web
+        env:
+          NODE_ENV: production
+
+      - name: 📄 Create 404.html for SPA routing
+        run: |
+          cp dist/index.html dist/404.html
+          echo "✅ 404.html created for SPA routing"
+
+      - name: 🔍 Verify build output
+        id: build_result
+        run: |
+          if [ -d "dist" ] && [ -f "dist/index.html" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "✅ Build successful - dist/ directory created"
+            ls -la dist/
+            echo "Build size: $(du -sh dist/ | cut -f1)"
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "❌ Build failed - dist/ directory missing"
+            exit 1
+          fi
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-web-build
+          path: dist/
+          retention-days: 30
+
+      - name: 📤 Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Deploy to GitHub Pages
+  # ─────────────────────────────────────────────
+  deploy:
+    name: 🌐 Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.run_tests_only != 'true')
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: ✅ Deployment URL
+        run: echo "🌐 Deployed to ${{ steps.deployment.outputs.page_url }}"
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Wait & Verify Deployment
+  # ─────────────────────────────────────────────
+  verify-deployment:
+    name: 🔍 Verify Live Deployment
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always() && (needs.deploy.result == 'success' || github.event.inputs.run_tests_only == 'true')
+    outputs:
+      deployment_live: ${{ steps.check.outputs.live }}
+      verified_url: ${{ steps.check.outputs.url }}
+
+    steps:
+      - name: ⏳ Wait for GitHub Pages CDN propagation
+        run: |
+          echo "⏳ Waiting 30 seconds for CDN propagation..."
+          sleep 30
+
+      - name: 🔍 Verify deployment returns HTTP 200
+        id: check
+        run: |
+          BASE_URL="${{ env.BASE_URL }}"
+          MAX_RETRIES=10
+          WAIT_SECS=15
+          
+          echo "🔍 Verifying deployment at: $BASE_URL"
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$BASE_URL" || echo "000")
+            echo "Attempt $i/$MAX_RETRIES — HTTP $HTTP_CODE"
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Site is live! HTTP 200 confirmed."
+              echo "live=true" >> $GITHUB_OUTPUT
+              echo "url=$BASE_URL" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            if [ $i -lt $MAX_RETRIES ]; then
+              echo "⏳ Waiting ${WAIT_SECS}s before retry..."
+              sleep $WAIT_SECS
+            fi
+          done
+          
+          echo "⚠️ Site not returning HTTP 200 after $MAX_RETRIES attempts"
+          echo "live=false" >> $GITHUB_OUTPUT
+          echo "url=$BASE_URL" >> $GITHUB_OUTPUT
+
+  # ─────────────────────────────────────────────
+  # JOB 4: Selenium E2E Tests
+  # ─────────────────────────────────────────────
+  selenium-tests:
+    name: 🧪 Selenium E2E Tests
+    needs: verify-deployment
+    runs-on: ubuntu-latest
+    if: always() && needs.verify-deployment.outputs.deployment_live == 'true'
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 📦 Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r selenium-tests/requirements.txt
+
+      - name: 🌐 Setup Chrome browser
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: 🔍 Verify Chrome installation
+        run: |
+          google-chrome --version
+          chromedriver --version || true
+
+      - name: 📁 Create test result directories
+        run: |
+          mkdir -p "Test Results/Excel"
+          mkdir -p "Test Results/HTML"
+          mkdir -p "Test Results/Screenshots"
+          mkdir -p "Test Results/Logs"
+          mkdir -p "Test Results/Summary"
+
+      - name: 🧪 Run Selenium E2E tests
+        id: run_tests
+        run: |
+          cd selenium-tests
+          python -m pytest tests/ \
+            --base-url="${{ env.BASE_URL }}" \
+            -v \
+            --tb=short \
+            --html="../Test Results/HTML/execution-report.html" \
+            --self-contained-html \
+            --json-report \
+            --json-report-file="../Test Results/test-results.json" \
+            -p no:warnings \
+            2>&1 | tee "../Test Results/Logs/test-execution.log"
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+          HEADLESS: "true"
+          SCREENSHOTS_DIR: "../Test Results/Screenshots"
+        continue-on-error: true
+
+      - name: 📊 Generate Excel report
+        if: always()
+        run: |
+          cd selenium-tests
+          python utils/excel_reporter.py \
+            --results="../Test Results/test-results.json" \
+            --output="../Test Results/Excel/Automation_Test_Report.xlsx" \
+            --base-url="${{ env.BASE_URL }}"
+        continue-on-error: true
+
+      - name: 📝 Generate summary markdown
+        if: always()
+        run: |
+          cd selenium-tests
+          python utils/report_generator.py \
+            --results="../Test Results/test-results.json" \
+            --output="../Test Results/Summary/summary.md" \
+            --base-url="${{ env.BASE_URL }}" \
+            --run-number="${{ github.run_number }}"
+        continue-on-error: true
+
+      - name: 📤 Upload Test Results artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-test-results-${{ github.run_number }}
+          path: |
+            Test Results/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: 📊 Publish GitHub Actions Summary
+        if: always()
+        run: |
+          RESULTS_FILE="Test Results/test-results.json"
+          BASE_URL="${{ env.BASE_URL }}"
+          RUN_NUMBER="${{ github.run_number }}"
+
+          if [ -f "$RESULTS_FILE" ]; then
+            TOTAL=$(python3 -c "import json; d=json.load(open('$RESULTS_FILE')); print(d.get('summary',{}).get('total',0))" 2>/dev/null || echo "0")
+            PASSED=$(python3 -c "import json; d=json.load(open('$RESULTS_FILE')); print(d.get('summary',{}).get('passed',0))" 2>/dev/null || echo "0")
+            FAILED=$(python3 -c "import json; d=json.load(open('$RESULTS_FILE')); print(d.get('summary',{}).get('failed',0))" 2>/dev/null || echo "0")
+            SKIPPED=$(python3 -c "import json; d=json.load(open('$RESULTS_FILE')); print(d.get('summary',{}).get('skipped',0))" 2>/dev/null || echo "0")
+          else
+            TOTAL=0; PASSED=0; FAILED=0; SKIPPED=0
+          fi
+
+          if [ "$TOTAL" -gt "0" ]; then
+            PASS_PCT=$(python3 -c "print(f'{($PASSED/$TOTAL)*100:.1f}%')" 2>/dev/null || echo "N/A")
+          else
+            PASS_PCT="N/A"
+          fi
+
+          FAILED_TESTS=""
+          if [ -f "$RESULTS_FILE" ]; then
+            FAILED_TESTS=$(python3 -c "
+          import json
+          d = json.load(open('$RESULTS_FILE'))
+          tests = d.get('tests', [])
+          failed = [t for t in tests if t.get('outcome') == 'failed']
+          for t in failed[:10]:
+              name = t.get('nodeid', 'Unknown').split('::')[-1]
+              reason = t.get('call', {}).get('longrepr', 'Unknown error')[:100]
+              print(f'- **{name}**: {reason}')
+          " 2>/dev/null || echo "- No failure details available")
+          fi
+
+          STATUS_EMOJI="✅"
+          [ "$FAILED" -gt "0" ] && STATUS_EMOJI="❌"
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # $STATUS_EMOJI Live GitHub Pages E2E Test Summary
+
+          > **Build**: #${RUN_NUMBER} | **Branch**: \`${{ github.ref_name }}\` | **Commit**: \`${{ github.sha }}\`
+
+          ## 🌐 Deployment
+          | | |
+          |---|---|
+          | **Deployment URL** | [$BASE_URL]($BASE_URL) |
+          | **Status** | Live ✅ |
+
+          ## 📊 Test Results
+          | Metric | Count |
+          |--------|-------|
+          | **Total Tests** | $TOTAL |
+          | ✅ Passed | $PASSED |
+          | ❌ Failed | $FAILED |
+          | ⏭️ Skipped | $SKIPPED |
+          | **Pass Rate** | $PASS_PCT |
+
+          ## ❌ Failed Tests
+          $FAILED_TESTS
+
+          ## 📎 Artifacts
+          - 📊 Automation_Test_Report.xlsx
+          - 🌐 execution-report.html
+          - 📸 Screenshots
+          - 📋 Logs
+          - 📝 summary.md
+          EOF
+
+      - name: ❌ Fail if tests failed
+        if: steps.run_tests.outcome == 'failure'
+        run: |
+          echo "❌ Selenium tests failed. Check the reports for details."
+          exit 1

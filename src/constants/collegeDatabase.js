@@ -74,87 +74,32 @@ const TOP_COLLEGES = [
   makeCollege("Professor Jayashankar Telangana State Agricultural University", "Hyderabad", "Telangana", "agriculture", "Government", "Co-Education", 4.5, 80, "45,000", 78, "top", true, "A", 2014, "State's best agri university", ["B.Sc Agriculture"], "Modern Agri Methods"),
 ];
 
-// --- DYNAMIC GENERATOR TO COVER ALL STATES AND COLLEGES ---
-const STATES_CITIES = {
-  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Trichy", "Salem", "Tirunelveli"],
-  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Aurangabad", "Solapur"],
-  "Karnataka": ["Bangalore", "Mysore", "Hubli", "Mangalore", "Belgaum"],
-  "Delhi": ["New Delhi", "Dwarka", "Rohini"],
-  "Kerala": ["Trivandrum", "Kochi", "Kozhikode", "Thrissur", "Kollam"],
-  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Tirupati"],
-  "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar"],
-  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
-  "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Ajmer"],
-  "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Varanasi", "Noida"],
-  "West Bengal": ["Kolkata", "Asansol", "Siliguri", "Durgapur", "Howrah"],
-  "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala"],
-  "Haryana": ["Gurgaon", "Faridabad", "Panipat", "Ambala", "Hisar"],
-  "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur"],
-  "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior"],
-  "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur"],
-  "Assam": ["Guwahati", "Silchar", "Dibrugarh"],
-  "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad"],
-  "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur"],
-  "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee"],
-  "Himachal Pradesh": ["Shimla", "Mandi", "Dharamshala"],
-  "Jammu and Kashmir": ["Srinagar", "Jammu"],
-  "Goa": ["Panaji", "Margao", "Vasco"],
-  "Puducherry": ["Pondicherry", "Auroville"]
-};
+import collegesData from './colleges_compressed.json';
 
-const DEPARTMENTS = ["engineering", "medical", "arts_science", "law", "management", "agriculture", "pharmacy", "architecture", "education"];
-const PREFIXES = ["Sri", "National", "Global", "State", "Royal", "Excel", "Pioneer", "Indian", "Modern", "United", "Adarsh", "Vidya", "Bharath"];
-const SUFFIXES = {
-  "engineering": ["Institute of Technology", "College of Engineering", "Engineering Academy"],
-  "medical": ["Medical College", "Institute of Medical Sciences", "Healthcare Institute"],
-  "arts_science": ["College of Arts and Science", "Degree College", "Science Institute"],
-  "law": ["Law College", "College of Law", "School of Legal Studies"],
-  "management": ["Institute of Management", "Business School", "Management College"],
-  "agriculture": ["Agricultural College", "Institute of Agriculture", "College of Agri-Sciences"],
-  "pharmacy": ["College of Pharmacy", "Institute of Pharmaceutical Sciences"],
-  "architecture": ["School of Architecture", "College of Design and Architecture"],
-  "education": ["College of Education", "Teachers Training Institute"]
-};
+const PARSED_COLLEGES = collegesData.map(c => ({
+  name: c[0],
+  location: c[1],
+  state: c[2],
+  department: c[3],
+  type: c[4],
+  gender: "Co-Education",
+  rating: c[5],
+  placementRate: c[6],
+  minPercentage: c[7],
+  annualFee: "Contact College",
+  topCompanies: getCompanies(c[3], "mid"),
+  hostelAvailable: c[8] === 1,
+  naacGrade: "B+",
+  established: 2000,
+  description: `A ${c[4].toLowerCase()} college located in ${c[1]}, ${c[2]}.`,
+  courses: ["Various Courses"],
+  highlight: "",
+  mapQuery: `${c[0]} ${c[1]} ${c[2]}`
+}));
 
-const GENERATED_COLLEGES = [];
+// Combine curated top colleges with parsed ones
+export const COLLEGE_DATABASE = [...TOP_COLLEGES, ...PARSED_COLLEGES];
 
-// Seeded random number generator so colleges don't change every reload
-function seededRandom(seed) {
-  let x = Math.sin(seed++) * 10000;
-  return x - Math.floor(x);
-}
-
-// Generate hundreds of regional colleges automatically
-let seed = 1;
-for (const state in STATES_CITIES) {
-  const cities = STATES_CITIES[state];
-  for (const city of cities) {
-    for (const dept of DEPARTMENTS) {
-      // Create 2-4 colleges per department per city
-      const numColleges = Math.floor(seededRandom(seed++) * 3) + 2;
-      for (let i = 0; i < numColleges; i++) {
-        const isGovt = seededRandom(seed++) > 0.8;
-        const type = isGovt ? "Government" : "Private";
-        const prefix = PREFIXES[Math.floor(seededRandom(seed++) * PREFIXES.length)];
-        const suffix = SUFFIXES[dept][Math.floor(seededRandom(seed++) * SUFFIXES[dept].length)];
-        const name = `${prefix} ${suffix}, ${city}`;
-        
-        const rating = (Math.floor(seededRandom(seed++) * 20) + 30) / 10; // 3.0 to 4.9
-        const minPct = isGovt ? Math.floor(seededRandom(seed++) * 20) + 75 : Math.floor(seededRandom(seed++) * 30) + 50; // Govt: 75-95, Pvt: 50-80
-        const feeNum = isGovt ? Math.floor(seededRandom(seed++) * 30 + 10) * 1000 : Math.floor(seededRandom(seed++) * 150 + 50) * 1000;
-        const placement = Math.floor(seededRandom(seed++) * 40) + 55; // 55% to 95%
-        const estYear = Math.floor(seededRandom(seed++) * 70) + 1950;
-        
-        GENERATED_COLLEGES.push(
-          makeCollege(name, city, state, dept, type, "Co-Education", rating, minPct, feeNum.toLocaleString('en-IN'), placement, "mid", seededRandom(seed++) > 0.3, "B+", estYear, `A reputed ${dept} college in ${city}, ${state}.`, ["Various Courses"], "")
-        );
-      }
-    }
-  }
-}
-
-// Combine curated top colleges with generated ones
-export const COLLEGE_DATABASE = [...TOP_COLLEGES, ...GENERATED_COLLEGES];
 
 export const getCollegesForStudent = (state, department, percentage, entranceScore = 0) => {
   // 1. Filter by exactly the chosen department
