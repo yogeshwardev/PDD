@@ -11,13 +11,17 @@ app.post('/claude', (req, res) => {
     max_tokens: 2000,
     temperature: 0.7
   });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GROQ_API_KEY environment variable is not set' });
+  }
   const options = {
     hostname: 'api.groq.com',
     path: '/openai/v1/chat/completions',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer 342ac6d9d51a4011883789d6c613afc7.-2jXyZfg8D__r5oshhm6UGeu',
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Length': Buffer.byteLength(body)
     }
   };

@@ -28,6 +28,7 @@ env:
   BASE_URL: https://dinesh-2005d.github.io/Smart_Admission/
   NODE_VERSION: '20'
   PYTHON_VERSION: '3.11'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ─────────────────────────────────────────────

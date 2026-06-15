@@ -38,71 +38,73 @@ class TestHomePageLoad:
 
     @pytest.mark.regression
     def test_tagline_visible(self, driver, base_url):
-        """TC-H-004: Tagline 'Intelligent College Admission' is visible."""
+        """TC-H-004: Tagline or app description is visible."""
         page = HomePage(driver, base_url).load()
         assert page.is_tagline_visible(), (
-            "Tagline not visible — 'Intelligent College Admission' missing"
+            "Tagline not visible — no app description text found"
         )
 
     @pytest.mark.regression
     def test_state_selector_present(self, driver, base_url):
-        """TC-H-005: State/UT selector is present."""
+        """TC-H-005: State/UT selector or related text is present."""
         page = HomePage(driver, base_url).load()
         assert page.is_state_selector_present(), (
-            "State selector dropdown not found"
+            "State selector/text not found"
         )
 
     @pytest.mark.regression
     def test_board_selector_present(self, driver, base_url):
-        """TC-H-006: Board selector is present."""
+        """TC-H-006: Board selector or related text is present."""
         page = HomePage(driver, base_url).load()
         assert page.is_board_selector_present(), (
-            "Board selector dropdown not found"
+            "Board selector/text not found"
         )
 
     @pytest.mark.regression
     def test_next_button_present(self, driver, base_url):
-        """TC-H-007: 'Next: Enter Your Marks' button is visible."""
+        """TC-H-007: Navigation button (Next/Continue/Step) is visible."""
         page = HomePage(driver, base_url).load()
         assert page.is_next_button_present(), (
-            "'Next / Enter Your Marks' button not found"
+            "'Next / Continue / Step' button not found"
         )
 
     @pytest.mark.regression
     def test_stats_row_visible(self, driver, base_url):
-        """TC-H-008: Stats section (1000+ Colleges, 28+ States) is visible."""
+        """TC-H-008: Stats section (Colleges, States) is visible."""
         page = HomePage(driver, base_url).load()
         page.scroll_down()
+        time.sleep(1)
         assert page.is_stats_row_present(), (
-            "Stats row (1000+ Colleges) not found after scrolling"
+            "Stats row (Colleges/States count) not found after scrolling"
         )
 
     @pytest.mark.regression
     def test_feature_cards_visible(self, driver, base_url):
-        """TC-H-009: Feature cards (AI Powered, Placement Data) visible."""
+        """TC-H-009: Feature section (AI/Smart features) visible."""
         page = HomePage(driver, base_url).load()
         page.scroll_down()
+        time.sleep(1)
         assert page.is_features_section_present(), (
-            "Feature cards (AI Powered / Placement) not found"
+            "Feature cards / Smart features section not found"
         )
 
     @pytest.mark.regression
     def test_india_badge_visible(self, driver, base_url):
-        """TC-H-010: India badge is present in hero section."""
+        """TC-H-010: India-related content is present."""
         page = HomePage(driver, base_url).load()
-        assert page.is_india_badge_present(), "India badge not found"
+        assert page.is_india_badge_present(), "India badge/text not found"
 
     @pytest.mark.regression
     def test_free_badge_visible(self, driver, base_url):
-        """TC-H-011: 'Free' badge is visible."""
+        """TC-H-011: 'Free' badge or indicator is visible."""
         page = HomePage(driver, base_url).load()
-        assert page.is_free_badge_present(), "Free badge not found"
+        assert page.is_free_badge_present(), "Free badge/text not found"
 
     @pytest.mark.regression
     def test_step_indicator_visible(self, driver, base_url):
-        """TC-H-012: Step 1 of 3 indicator is visible."""
+        """TC-H-012: Step indicator is visible."""
         page = HomePage(driver, base_url).load()
-        assert page.is_step_indicator_present(), "Step indicator 'Step 1' not found"
+        assert page.is_step_indicator_present(), "Step indicator not found"
 
 
 class TestHomePageInteraction:

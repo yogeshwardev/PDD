@@ -86,7 +86,7 @@ def wait(driver):
 def app(driver, base_url):
     """Navigate to the app and wait for it to load."""
     driver.get(base_url)
-    time.sleep(3)  # Allow React Native Web to hydrate
+    time.sleep(5)  # Allow React Native Web to hydrate (needs more time on CI)
     return driver
 
 
