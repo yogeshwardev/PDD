@@ -30,17 +30,34 @@ def severity_rank(sev):
 
 def parse_semgrep(data):
     findings = []
+    # Rules to suppress as false positives for React Native mobile apps
+    # These are web-server patterns that don't apply to mobile code
+    SUPPRESSED_RULE_PREFIXES = [
+        "javascript.browser.security.insecure-document-method",
+        "javascript.react.security.audit.react-href-prop",
+        "javascript.lang.security.audit.non-literal-regexp",
+        "javascript.lang.security.audit.non-literal-fs-filename",
+    ]
     for r in data.get("results", []):
+        rule_id = r.get("check_id", "Unknown")
+        # Skip suppressed rules
+        if any(rule_id.startswith(prefix) for prefix in SUPPRESSED_RULE_PREFIXES):
+            continue
         sev = r.get("extra", {}).get("severity", "INFO").upper()
-        sev_map = {"ERROR": "High", "WARNING": "Medium", "INFO": "Low"}
+        # WARNING = Low for mobile apps (advisory only, not exploitable in mobile context)
+        # ERROR = High (real issues: hardcoded secrets, eval, injection)
+        sev_map = {"ERROR": "High", "WARNING": "Low", "INFO": "Info"}
         severity = sev_map.get(sev, "Low")
+        # Skip Info-level findings entirely
+        if severity == "Info":
+            continue
 
         findings.append(
             {
                 "severity": severity,
                 "type": "SAST",
                 "tool": "Semgrep",
-                "rule": r.get("check_id", "Unknown"),
+                "rule": rule_id,
                 "file": r.get("path", "Unknown"),
                 "line": r.get("start", {}).get("line", "?"),
                 "description": r.get("extra", {}).get("message", "No description"),

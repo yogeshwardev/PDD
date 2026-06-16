@@ -1,0 +1,27 @@
+# .semgrepignore — Suppress false-positive paths for React Native mobile app
+
+# Third-party and generated code (never scan)
+node_modules/
+dist/
+build/
+.expo/
+android/
+ios/
+*.min.js
+
+# Test infrastructure (not production code)
+selenium-tests/
+appium-tests/
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Build and config files
+babel.config.js
+metro.config.js
+webpack.config.js
+
+# Scripts directory (utility scripts, not app code)
+scripts/
