@@ -1,0 +1,32 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-8.1.1, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.11.15/x64/bin/python
+cachedir: .pytest_cache
+metadata: {'Python': '3.11.15', 'Platform': 'Linux-6.17.0-1018-azure-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.1.1', 'pluggy': '1.6.0'}, 'Plugins': {'html': '4.1.1', 'json-report': '1.5.0', 'metadata': '3.1.1'}, 'CI': 'true', 'BUILD_NUMBER': '1', 'JAVA_HOME': '/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64'}
+rootdir: /home/runner/work/PDD/PDD/appium-tests
+configfile: pytest.ini
+plugins: html-4.1.1, json-report-1.5.0, metadata-3.1.1
+collecting ... collected 18 items
+
+tests/test_home_flow.py::TestHomeScreen::test_home_screen_loads PASSED   [  5%]
+tests/test_home_flow.py::TestHomeScreen::test_title_visible PASSED       [ 11%]
+tests/test_home_flow.py::TestHomeScreen::test_tagline_visible PASSED     [ 16%]
+tests/test_home_flow.py::TestHomeScreen::test_state_selector_present PASSED [ 22%]
+tests/test_home_flow.py::TestHomeScreen::test_board_selector_present PASSED [ 27%]
+tests/test_home_flow.py::TestHomeScreen::test_next_button_present PASSED [ 33%]
+tests/test_home_flow.py::TestHomeScreen::test_scroll_reveals_stats PASSED [ 38%]
+tests/test_home_flow.py::TestHomeScreen::test_state_dropdown_tappable PASSED [ 44%]
+tests/test_home_flow.py::TestHomeScreen::test_no_crash_on_navigation PASSED [ 50%]
+tests/test_search.py::TestSearchScreen::test_search_tab_accessible PASSED [ 55%]
+tests/test_search.py::TestSearchScreen::test_popular_tags_visible PASSED [ 61%]
+tests/test_search.py::TestSearchScreen::test_search_iit PASSED           [ 66%]
+tests/test_search.py::TestSearchScreen::test_search_nonsense_no_results PASSED [ 72%]
+tests/test_search.py::TestSearchScreen::test_search_engineering PASSED   [ 77%]
+tests/test_splash.py::TestSplashScreen::test_app_launches PASSED         [ 83%]
+tests/test_splash.py::TestSplashScreen::test_splash_completes PASSED     [ 88%]
+tests/test_splash.py::TestSplashScreen::test_splash_shows_branding PASSED [ 94%]
+tests/test_splash.py::TestSplashScreen::test_post_splash_home_visible PASSED [100%]
+
+--------------------------------- JSON report ----------------------------------
+report saved to: ../Test Results/test-results.json
+- Generated html report: file:///home/runner/work/PDD/PDD/appium-tests/../Test%20Results/HTML/execution-report.html -
+======================== 18 passed in 377.50s (0:06:17) ========================
