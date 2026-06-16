@@ -46,7 +46,8 @@
       "expo-web-browser"
     ],
     "experiments": {
-      "reactCompiler": true
+      "reactCompiler": true,
+      "baseUrl": "/Smart_Admission"
     },
     "extra": {
       "eas": {
